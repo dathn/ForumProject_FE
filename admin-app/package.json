@@ -1,5 +1,5 @@
 {
-    "name": "sb-admin-bs4-angular-9",
+    "name": "forum-admin",
     "version": "9.0.0",
     "license": "Apache",
     "scripts": {
@@ -30,6 +30,7 @@
         "core-js": "3.6.4",
         "font-awesome": "4.7.0",
         "ng2-charts": "2.3.0",
+        "oidc-client": "^1.9.1",
         "rxjs": "6.5.5",
         "tslib": "^1.11.1",
         "zone.js": "~0.10.3"
