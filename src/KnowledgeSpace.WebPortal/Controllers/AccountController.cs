@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using KnowledgeSpace.ViewModels.Contents;
 using KnowledgeSpace.WebPortal.Extensions;
+using KnowledgeSpace.WebPortal.Helpers;
 using KnowledgeSpace.WebPortal.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -45,6 +46,14 @@ namespace KnowledgeSpace.WebPortal.Controllers
         }
 
         [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> MyKnowledgeBases(int page = 1, int pageSize = 10)
+        {
+            var kbs = await _userApiClient.GetKnowledgeBasesByUserId(User.GetUserId(), page, pageSize);
+            return View(kbs);
+        }
+
+        [HttpGet]
         public async Task<IActionResult> CreateNewKnowledgeBase()
         {
             await SetCategoriesViewBag();
@@ -56,30 +65,80 @@ namespace KnowledgeSpace.WebPortal.Controllers
         {
             if (!ModelState.IsValid)
             {
-                await SetCategoriesViewBag();
-                return View();
+                return BadRequest(ModelState);
+            }
+            if (!Captcha.ValidateCaptchaCode(request.CaptchaCode, HttpContext))
+            {
+                ModelState.AddModelError("", "Mã xác nhận không đúng");
+                return BadRequest(ModelState);
             }
 
             var result = await _knowledgeBaseApiClient.PostKnowlegdeBase(request);
             if (result)
             {
-                TempData["message"] = "Thêm bài viết thành công";
-                return Redirect("/my-kbs");
+                return Ok();
             }
-
-            await SetCategoriesViewBag();
-            return View(request);
+            return BadRequest();
         }
 
-        private async Task SetCategoriesViewBag()
+        [HttpGet]
+        public async Task<IActionResult> EditKnowledgeBase(int id)
+        {
+            var knowledgeBase = await _knowledgeBaseApiClient.GetKnowledgeBaseDetail(id);
+            await SetCategoriesViewBag();
+            return View(new KnowledgeBaseCreateRequest()
+            {
+                CategoryId = knowledgeBase.CategoryId,
+                Description = knowledgeBase.Description,
+                Environment = knowledgeBase.Environment,
+                ErrorMessage = knowledgeBase.ErrorMessage,
+                Labels = knowledgeBase.Labels,
+                Note = knowledgeBase.Note,
+                Problem = knowledgeBase.Problem,
+                StepToReproduce = knowledgeBase.StepToReproduce,
+                Title = knowledgeBase.Title,
+                Workaround = knowledgeBase.Workaround,
+                Id = knowledgeBase.Id
+            });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> EditKnowledgeBase([FromForm]KnowledgeBaseCreateRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            if (!Captcha.ValidateCaptchaCode(request.CaptchaCode, HttpContext))
+            {
+                ModelState.AddModelError("", "Mã xác nhận không đúng");
+                return BadRequest(ModelState);
+            }
+
+            var result = await _knowledgeBaseApiClient.PutKnowlegdeBase(request.Id.Value, request);
+            if (result)
+            {
+                return Ok();
+            }
+            return BadRequest();
+        }
+
+        private async Task SetCategoriesViewBag(int? selectedValue = null)
         {
             var categories = await _categoryApiClient.GetCategories();
-            categories.Insert(0, new CategoryVm()
+
+            var items = categories.Select(i => new SelectListItem()
             {
-                Id = 0,
-                Name = "--Hãy chọn danh mục--"
+                Text = i.Name,
+                Value = i.Id.ToString(),
+            }).ToList();
+
+            items.Insert(0, new SelectListItem()
+            {
+                Value = null,
+                Text = "--Chọn danh mục--"
             });
-            ViewBag.Categories = categories;
+            ViewBag.Categories = new SelectList(items, "Value", "Text", selectedValue);
         }
     }
 }

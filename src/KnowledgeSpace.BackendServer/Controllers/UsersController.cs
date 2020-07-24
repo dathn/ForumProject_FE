@@ -4,6 +4,7 @@ using KnowledgeSpace.BackendServer.Data;
 using KnowledgeSpace.BackendServer.Data.Entities;
 using KnowledgeSpace.BackendServer.Helpers;
 using KnowledgeSpace.ViewModels;
+using KnowledgeSpace.ViewModels.Contents;
 using KnowledgeSpace.ViewModels.Systems;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -183,7 +184,7 @@ namespace KnowledgeSpace.BackendServer.Controllers
             if (user == null)
                 return NotFound();
 
-            var adminUsers = await _userManager.GetUsersInRoleAsync(SystemConstants.Roles.Admin);
+            var adminUsers = await _userManager.GetUsersInRoleAsync(Constants.SystemConstants.Roles.Admin);
             var otherUsers = adminUsers.Where(x => x.Id != id).ToList();
             if (otherUsers.Count == 0)
             {
@@ -274,9 +275,9 @@ namespace KnowledgeSpace.BackendServer.Controllers
             {
                 return BadRequest(new ApiBadRequestResponse("Role names cannot empty"));
             }
-            if (request.RoleNames.Length == 1 && request.RoleNames[0] == SystemConstants.Roles.Admin)
+            if (request.RoleNames.Length == 1 && request.RoleNames[0] == Constants.SystemConstants.Roles.Admin)
             {
-                return BadRequest(new ApiBadRequestResponse($"Cannot remove {SystemConstants.Roles.Admin} role"));
+                return base.BadRequest(new ApiBadRequestResponse($"Cannot remove {Constants.SystemConstants.Roles.Admin} role"));
             }
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null)
@@ -286,6 +287,42 @@ namespace KnowledgeSpace.BackendServer.Controllers
                 return Ok();
 
             return BadRequest(new ApiBadRequestResponse(result));
+        }
+
+        [HttpGet("{userId}/knowledgeBases")]
+        public async Task<IActionResult> GetKnowledgeBasesByUserId(string userId, int pageIndex, int pageSize)
+        {
+            var query = from k in _context.KnowledgeBases
+                        join c in _context.Categories on k.CategoryId equals c.Id
+                        where k.OwnerUserId == userId
+                        orderby k.CreateDate descending
+                        select new { k, c };
+
+            var totalRecords = await query.CountAsync();
+
+            var items = await query.Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+               .Select(u => new KnowledgeBaseQuickVm()
+               {
+                   Id = u.k.Id,
+                   CategoryId = u.k.CategoryId,
+                   Description = u.k.Description,
+                   SeoAlias = u.k.SeoAlias,
+                   Title = u.k.Title,
+                   CategoryAlias = u.c.SeoAlias,
+                   CategoryName = u.c.Name,
+                   NumberOfVotes = u.k.NumberOfVotes,
+                   CreateDate = u.k.CreateDate
+               }).ToListAsync();
+
+            var pagination = new Pagination<KnowledgeBaseQuickVm>
+            {
+                Items = items,
+                TotalRecords = totalRecords,
+                PageIndex = pageIndex,
+                PageSize = pageSize
+            };
+            return Ok(pagination);
         }
     }
 }
