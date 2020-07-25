@@ -52,7 +52,7 @@ export class AuthService extends BaseService {
 
 export function getClientSettings(): UserManagerSettings {
     return {
-        authority: 'http://localhost:5000',
+        authority: 'https://localhost:5000',
         client_id: 'angular_admin',
         redirect_uri: 'http://localhost:4200/auth-callback',
         post_logout_redirect_uri: 'http://localhost:4200/',
@@ -61,6 +61,6 @@ export function getClientSettings(): UserManagerSettings {
         filterProtocolClaims: true,
         loadUserInfo: true,
         automaticSilentRenew: true,
-        silent_redirect_uri: 'http://localhost:4200/silent-refresh'
+        silent_redirect_uri: 'http://localhost:4200/silent-refresh.html'
     };
 }
