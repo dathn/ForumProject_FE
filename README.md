@@ -11,4 +11,3 @@
 - https://git-scm.com/downloads
 - npm install -g @angular/cli
 - Visual Studio Code (https://code.visualstudio.com/)
-- Run command: git clone https://github.com/start-angular/SB-Admin-BS4-Angular-8.git admin-app
