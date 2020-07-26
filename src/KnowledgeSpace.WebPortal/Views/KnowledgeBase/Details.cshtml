@@ -1,7 +1,7 @@
 ﻿@model KnowledgeBaseDetailViewModel
-@using KnowledgeSpace.WebPortal.Extensions
 @{
-    ViewData["Title"] = Model.Detail.Title;
+    ViewData["Title"] = Model.Detail.Title + " - Knowledge Space";
+    ViewData["Description"] = Model.Detail.Description;
     Layout = "_SubLayout";
 }
 @section scripts{
@@ -13,12 +13,20 @@
     </script>
 }
 <input type="hidden" id="hid_knowledge_base_id" value="@Model.Detail.Id" />
-<input type="hidden" id="hid_current_login_name" value="@Model.CurrentUser.FirstName @Model.CurrentUser.LastName" />
+@if (User.Identity.IsAuthenticated)
+{
+    <input type="hidden" id="hid_current_login_name" value="@Model.CurrentUser.FirstName @Model.CurrentUser.LastName" />
+
+}
 <div class="span8 page-content">
 
     <ul class="breadcrumb">
         <li><a href="/">Trang chủ</a><span class="divider">/</span></li>
-        <li><a href="/cat/@Model.Category.SeoAlias-@Model.Category.Id" title="Xem tất cả bài trong @Model.Category.Name">@Model.Category.Name</a> <span class="divider">/</span></li>
+        <li>
+            <a href="/cat/@Model.Category.SeoAlias-@Model.Category.Id"
+               title="Xem tất cả bài trong @Model.Category.Name">@Model.Category.Name</a>
+            <span class="divider">/</span>
+        </li>
         <li class="active">@Model.Detail.Title</li>
     </ul>
 
@@ -27,9 +35,22 @@
         <h1 class="post-title"><a href="#">@Model.Detail.Title</a></h1>
 
         <div class="post-meta clearfix">
-            <span class="date">@Model.Detail.CreateDate.ToString("dd/MM/yyyy")</span>
-            <span class="category"><a href="/cat/@Model.Category.SeoAlias-@Model.Category.Id" title="Xem tất cả bài trong @Model.Category.Name">@Model.Category.Name</a></span>
-            <span class="comments"><a href="#" title="Bình luận trong bài @Model.Detail.Title">@Model.Detail.NumberOfComments.GetValueOrDefault(0).ToString("N0") bình luận</a></span>
+            <span class="date">@Model.Detail.CreateDate.ToString("dd/MM/yyyy hh:mm")</span>
+            <span class="category">
+                <a href="/cat/@Model.Category.SeoAlias-@Model.Category.Id"
+                   title="Xem tất cả bài trong @Model.Category.Name">@Model.Category.Name</a>
+            </span>
+            <span class="comments">
+                <a href="#" title="Bình luận trong bài @Model.Detail.Title">
+                    @Model.Detail.NumberOfComments.GetValueOrDefault(0).ToString("N0") bình luận
+                </a>
+            </span>
+            @if (User.Identity.IsAuthenticated)
+            {
+                <button type="button" class="btn" data-toggle="modal" data-target="#reportModal">
+                    Báo xấu
+                </button>
+            }
             <span class="like-count">@Model.Detail.NumberOfVotes.GetValueOrDefault(0).ToString("N0")</span>
         </div><!-- end of post meta -->
 
@@ -45,17 +66,19 @@
     </article>
 
     <div class="like-btn">
-        <form id="like-it-form" action="#" method="post">
-            <span class="like-it ">@Model.Detail.NumberOfVotes.GetValueOrDefault(0).ToString("N0")</span>
-            <input type="hidden" name="post_id" value="@Model.Detail.Id">
-            <input type="hidden" name="action" value="like_it">
-        </form>
+        @if (User.Identity.IsAuthenticated)
+        {
+            <form id="frm_vote" action="#" method="post">
+                <input type="hidden" name="knowledgeBaseId" value="@Model.Detail.Id">
+                <span class="like-it">@Model.Detail.NumberOfVotes.GetValueOrDefault(0).ToString("N0")</span>
+            </form>
+        }
 
         <span class="tags">
             <strong>Tags:&nbsp;&nbsp;</strong>
             @foreach (var label in Model.Labels)
             {
-                <a href="/tag/@label.Id" rel="tag">@label.Name</a>
+                <a href="/tag/@label.Id" rel="tag" title="@label.Name">@label.Name</a>
             }
         </span>
     </div>
@@ -66,6 +89,8 @@
 
         <ol class="commentlist" id="comment_list">
         </ol>
+        <a id="comment-pagination" data-page-index="1" href="#" style="display:none">Xem thêm bình luận</a>
+
         @if (User.Identity.IsAuthenticated)
         {
             <div id="respond">
@@ -84,9 +109,13 @@
                         <textarea class="span8" name="content" id="txt_new_comment_content" cols="58" rows="10"></textarea>
                     </div>
 
-                    <p class="allowed-tags">You can use these HTML tags and attributes <small><code>&lt;a href="" title=""&gt; &lt;abbr title=""&gt; &lt;acronym title=""&gt; &lt;b&gt; &lt;blockquote cite=""&gt; &lt;cite&gt; &lt;code&gt; &lt;del datetime=""&gt; &lt;em&gt; &lt;i&gt; &lt;q cite=""&gt; &lt;strike&gt; &lt;strong&gt; </code></small></p>
+                    <p id="message-result" style="display:none;"></p>
 
                     <div>
+                        <div class="input-group-prepend">
+                            <img id="img-captcha" src="/get-captcha-image" />
+                        </div>
+                        <input type="text" name="captchaCode" id="txt_captcha" />
                         <input class="btn" name="submit" type="submit" id="btn_send_comment" value="Gửi bình luận">
                     </div>
                 </form>
@@ -117,7 +146,7 @@
 
                 <p class="date">
                     <a href="#">
-                        <time datetime="2013-02-26T13:20:14+00:00">{{createDate}}</time>
+                        <time>{{createDate}}</time>
                     </a>
                 </p>
             </div><!-- end .comment-meta -->
@@ -147,7 +176,7 @@
 
                 <p class="date">
                     <a href="#">
-                        <time datetime="2013-02-26T13:18:47+00:00">{{createDate}} vào lúc 1:18 pm</time>
+                        <time datetime="2013-02-26T13:18:47+00:00">{{createDate}}</time>
                     </a>
                 </p>
             </div><!-- end .comment-meta -->
@@ -174,9 +203,43 @@
             <div>
                 <textarea class="span8" name="content" id="txt_reply_content_{{commentId}}" cols="58" rows="5"></textarea>
             </div>
-            <div>
+            <p id="message-result-reply-{{commentId}}" style="display:none;"></p>
+
+            <div class="form-actions">
+                <div class="input-group-prepend">
+                    <img id="img-captcha-reply-{{commentId}}" data-id="{{commentId}}" class="img-captcha" alt="Click vào ảnh để đổi" src="/get-captcha-image" />
+                </div>
+                <input type="text" name="captchaCode" id="txt_captcha_reply_{{commentId}}" />
                 <input class="btn" name="submit" type="submit" id="btn_send_reply" value="Trả lời">
             </div>
         </form>
     </div>
 </script>
+
+<!-- Modal -->
+<div class="modal fade" id="reportModal" tabindex="-1" role="dialog" data-backdrop="static"
+     aria-labelledby="reportModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form id="frm_report">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reportModalLabel">Báo xấu</h5>
+                </div>
+                <div class="modal-body">
+
+                    <input type="hidden" value="@Model.Detail.Id" name="knowledgeBaseId" />
+                    <textarea id="txt_report_content" name="content" class="text-area"></textarea>
+                    <p id="message-result-report" style="display:none;"></p>
+                </div>
+                <div class="modal-footer">
+                    <div class="input-group-prepend">
+                        <img id="img-captcha-report" src="~/get-captcha-image" />
+                    </div>
+                    <input type="text" name="captchaCode" />
+                    <button type="button" class="btn btn-primary" id="btn_send_report">Báo cáo</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -1,5 +1,5 @@
 {
-    "name": "sb-admin-bs4-angular-9",
+    "name": "forum-admin",
     "version": "9.0.0",
     "license": "Apache",
     "scripts": {
@@ -30,6 +30,8 @@
         "core-js": "3.6.4",
         "font-awesome": "4.7.0",
         "ng2-charts": "2.3.0",
+        "ngx-spinner": "^10.0.1",
+        "oidc-client": "^1.9.1",
         "rxjs": "6.5.5",
         "tslib": "^1.11.1",
         "zone.js": "~0.10.3"
@@ -55,7 +57,7 @@
         "protractor": "5.4.3",
         "ts-node": "8.6.2",
         "tslint": "6.0.0",
-        "typescript": "^3.6.5",
+        "typescript": "^3.8.3",
         "yarn": "1.22.4"
     }
 }
